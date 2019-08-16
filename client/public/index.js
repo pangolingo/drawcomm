@@ -1,0 +1,155 @@
+// http://perfectionkills.com/exploring-canvas-drawing-techniques/
+const brushSize = 10;
+const brushAngle = 1/2;
+
+function distanceBetween(point1, point2) {
+  //return Math.sqrt(Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2));
+  return Math.hypot(point2.x - point1.x, point2.y - point1.y)
+}
+function angleBetween(point1, point2) {
+  return Math.atan2( point2.x - point1.x, point2.y - point1.y );
+}
+
+var el = document.getElementById('c');
+var canvas2 = document.getElementById('d')
+var ctx = el.getContext('2d');
+var ctx2 = canvas2.getContext('2d');
+ctx.fillStyle = 'red';
+ctx2.fillStyle = 'green';
+
+var isDrawing = false;
+var rect = el.getBoundingClientRect();
+
+var currentStrokePoints = [];
+var strokes = []
+var otherCanvasStrokes = [];
+
+// TODO: make sure we can't draw before opened, or queue up drawings before opened
+const socket = new WebSocket("ws://localhost:8081");
+
+const updateOffset = (e) => {
+  rect = el.getBoundingClientRect();
+}
+
+
+const startDrawing = function(e) {
+  currentStrokePoints = [];
+  isDrawing = true;
+};
+
+const drawWithPen = (context, pointArray) => {
+  if(pointArray.length < 2){
+    return;
+  }
+  
+  // stroke the points
+  for (var pp = 1; pp < pointArray.length; pp+=1) {
+    const currentPoint = pointArray[pp];
+    const lastPoint = pointArray[pp-1];
+    
+    var dist = distanceBetween(lastPoint, currentPoint);
+    var angle = angleBetween(lastPoint, currentPoint);
+    
+    // interpolate
+    for (var i = 0; i < dist; i+=1) {
+      x = lastPoint.x + (Math.sin(angle) * i);
+      y = lastPoint.y + (Math.cos(angle) * i);
+      context.fillRect(x,y,brushSize,brushSize * brushAngle)
+    }
+  }
+}
+
+// drawWithPen(ctx, [{x:1,y:1},{x:100,y:100},{x:200,y:1}]);
+
+const onMouseMove = function(e) {
+  if (!isDrawing) return;
+  
+  var currentPoint = { x: Math.round(e.clientX - rect.left), y: Math.round(e.clientY - rect.top) };
+  currentStrokePoints.push(currentPoint);
+};
+
+const send = (stroke) => {
+  // otherCanvasStrokes.push(stroke);
+  socket.send(compressStroke('PEN','PINK',stroke))
+}
+
+
+const render = () => {
+  ctx.clearRect(0, 0, el.width, el.height);
+  
+  // prev strokes
+  strokes.forEach((stroke) => drawWithPen(ctx, stroke));
+  // current stroke
+  drawWithPen(ctx, currentStrokePoints);
+  
+  
+  // other canvas
+  otherCanvasStrokes.forEach((stroke) => drawWithPen(ctx2, stroke));
+  
+  window.requestAnimationFrame(render);
+}
+window.requestAnimationFrame(render);
+
+
+const stopDrawing = function() {
+  isDrawing = false;
+  // save the stroke and start a new stroke
+  strokes.push(currentStrokePoints);
+  send(currentStrokePoints);
+  currentStrokePoints = [];
+};
+
+const clear = () => {
+   currentStrokePoints = [];
+  strokes = []
+}
+
+const undo = () => {
+  strokes.pop();
+}
+
+const compressStroke = (brush,color,points) => {
+  const pointsStr = points.map(p => `${p.x},${p.y}`).join(',')
+  return `${brush}:${color}:${pointsStr}`;
+};
+const decompressStroke = (str) => {
+  const parts = str.split(':');
+  return [
+    parts[0],
+    parts[1],
+    parts[2].match(/[^,]+,[^,]+/g).map(p => {
+      const [x,y] = p.split(',')
+      return {x: parseFloat(x), y: parseFloat(y)}
+    })
+  ];
+};
+
+
+el.addEventListener('mousedown', startDrawing);
+el.addEventListener('mouseup', stopDrawing);
+el.addEventListener('mousemove', onMouseMove);
+//el.addEventListener('mouseout', stopDrawing);
+
+document.getElementById('clear').addEventListener('click', clear)
+
+document.getElementById('undo').addEventListener('click', undo)
+
+window.addEventListener('scroll', updateOffset);
+window.addEventListener('resize', updateOffset);
+
+
+//document.getElementById('restore').addEventListener('click', restore)
+
+// todo: max stroke length
+
+
+socket.onopen = function (event) {
+  console.log('websocket opened')
+  // exampleSocket.send("Here's some text that the server is urgently awaiting!"); 
+};
+socket.onmessage = function (event) {
+  console.log('ws msg:', event.data)
+  strokes.push(decompressStroke(event.data)[2])
+}
+
+// todo: zip the message with http://pieroxy.net/blog/pages/lz-string/index.html
