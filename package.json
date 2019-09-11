@@ -6,9 +6,16 @@
   "dependencies": {
     "express": "4.17.1",
     "nodemon": "1.19.1",
+    "redis": "2.8.0",
     "ws": "7.1.1"
   },
   "scripts": {
-    "start": "nodemon index.js"
+    "start": "nodemon index.js",
+    "redis": "redis-server"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "client/*"
+    ]
   }
 }

@@ -39,6 +39,7 @@ socket.send( 'some_event', {name: 'ismael', message : 'Hello world'} );
 
 var FancyWebSocket = function(url){
   var conn = new WebSocket(url);
+  this.conn = conn;
 
   var callbacks = {};
 

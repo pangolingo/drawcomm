@@ -1,1 +1,7 @@
-canvas { border: 1px solid #ccc }
+canvas {
+  border: 1px solid #ccc;
+  background-color: #aaa;
+}
+canvas.enabled {
+  background-color: white;
+}

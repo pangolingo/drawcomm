@@ -1,5 +1,5 @@
 // http://perfectionkills.com/exploring-canvas-drawing-techniques/
-const brushSize = 10;
+const brushSize = 5;
 const brushAngle = 1/2;
 
 function distanceBetween(point1, point2) {
@@ -22,10 +22,12 @@ var rect = el.getBoundingClientRect();
 
 var currentStrokePoints = [];
 var strokes = []
-var otherCanvasStrokes = [];
+// var otherCanvasStrokes = [];
 
 // TODO: make sure we can't draw before opened, or queue up drawings before opened
-const socket = new WebSocket("ws://localhost:8081");
+var socket;
+
+var drawingEnabled = false;
 
 const updateOffset = (e) => {
   rect = el.getBoundingClientRect();
@@ -33,6 +35,9 @@ const updateOffset = (e) => {
 
 
 const startDrawing = function(e) {
+  if(!drawingEnabled){
+    return;
+  }
   currentStrokePoints = [];
   isDrawing = true;
 };
@@ -70,7 +75,10 @@ const onMouseMove = function(e) {
 
 const send = (stroke) => {
   // otherCanvasStrokes.push(stroke);
-  socket.send(compressStroke('PEN','PINK',stroke))
+  if(!socket){
+    throw new Error('Socket not connected')
+  }
+  socket.send('DRAW', compressStroke('PEN','PINK',stroke))
 }
 
 
@@ -84,7 +92,7 @@ const render = () => {
   
   
   // other canvas
-  otherCanvasStrokes.forEach((stroke) => drawWithPen(ctx2, stroke));
+  // otherCanvasStrokes.forEach((stroke) => drawWithPen(ctx2, stroke));
   
   window.requestAnimationFrame(render);
 }
@@ -137,19 +145,52 @@ document.getElementById('undo').addEventListener('click', undo)
 window.addEventListener('scroll', updateOffset);
 window.addEventListener('resize', updateOffset);
 
+var connect = () => {
+  if(socket && socket.conn.readyState === 1){
+    console.log('already connected')
+    return;
+  }
+  socket = new FancyWebSocket("ws://localhost:8081");
 
-//document.getElementById('restore').addEventListener('click', restore)
-
-// todo: max stroke length
 
 
-socket.onopen = function (event) {
-  console.log('websocket opened')
-  // exampleSocket.send("Here's some text that the server is urgently awaiting!"); 
-};
-socket.onmessage = function (event) {
-  console.log('ws msg:', event.data)
-  strokes.push(decompressStroke(event.data)[2])
-}
+  //document.getElementById('restore').addEventListener('click', restore)
+
+  // todo: max stroke length
+
+  socket.bind('open', () => {
+    console.log('websocket opened');
+    drawingEnabled = true;
+    el.classList.add('enabled');
+  })
+  socket.bind('DRAW', (data) => {
+    strokes.push(decompressStroke(data)[2])
+  })
+  socket.bind('REMEMBER', (data) => {
+    console.log('REMEMBERING');
+    strokes = data.map((s => decompressStroke(s)[2]));
+  })
+  socket.bind('close', () => {
+    console.log('websocket closed');
+    drawingEnabled = false;
+    el.classList.remove('enabled');
+    // alert('websocket closed');
+  })
+
+
+// socket.onopen = function (event) {
+//   console.log('websocket opened')
+//   // exampleSocket.send("Here's some text that the server is urgently awaiting!"); 
+// };
+// socket.onmessage = function (event) {
+//   console.log('ws msg:', event.data)
+//   strokes.push(decompressStroke(event.data)[2])
+// }
+
+} // end connect
+
+connect();
+
+window.addEventListener('focus', connect);
 
 // todo: zip the message with http://pieroxy.net/blog/pages/lz-string/index.html
