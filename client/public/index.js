@@ -1,5 +1,5 @@
 // http://perfectionkills.com/exploring-canvas-drawing-techniques/
-const brushSize = 5;
+// const brushSize = 5;
 const brushAngle = 1/2;
 
 function distanceBetween(point1, point2) {
@@ -10,9 +10,17 @@ function angleBetween(point1, point2) {
   return Math.atan2( point2.x - point1.x, point2.y - point1.y );
 }
 
+const colors = ['red', 'green', 'blue', 'white'];
+const brushSizes = [1, 5, 30];
+let currentColor = 0;
+let currentBrushSize = 1;
+
+const colorButtons = document.querySelectorAll('.color-button');
+const brushSizeButtons = document.querySelectorAll('.size-button');
+
 var el = document.getElementById('c');
 var ctx = el.getContext('2d');
-ctx.fillStyle = 'red';
+// ctx.fillStyle = colors[currentColor];
 
 var isDrawing = false;
 var rect = el.getBoundingClientRect();
@@ -29,6 +37,16 @@ const updateOffset = (e) => {
   rect = el.getBoundingClientRect();
 }
 
+const onColorSelect = (e) => {
+  const colorId = parseInt(e.currentTarget.dataset.color);
+  setColor(colorId);
+}
+
+const onBrushSizeSelect = (e) => {
+  const brushSizeId = parseInt(e.currentTarget.dataset.size);
+  setBrushSize(brushSizeId);
+}
+
 const onMouseDown = function(e) {
   if(isDrawing) {
     stopDrawing(e);
@@ -39,6 +57,21 @@ const onMouseUp = function(e) {
   stopDrawing(e);
 }
 
+const setColor = (colorId) => {
+  console.log('setting color', colorId, colors[colorId])
+  if(colorId < 0 || colorId >= colors.length) {
+    throw new Error(`Invalid color id ${colorId}`)
+  }
+  currentColor = colorId;
+}
+
+const setBrushSize = (brushSizeId) => {
+  console.log('setting brush size', brushSizeId, brushSizes[brushSizeId])
+  if(brushSizeId < 0 || brushSizeId >= brushSizes.length) {
+    throw new Error(`Invalid brush size id ${brushSizeId}`)
+  }
+  currentBrushSize = brushSizeId;
+}
 
 const startDrawing = function(e) {
   if(!drawingEnabled){
@@ -48,10 +81,13 @@ const startDrawing = function(e) {
   isDrawing = true;
 };
 
-const drawWithPen = (context, pointArray) => {
+const drawWithPen = (context, pointArray, color, brushSize) => {
   if(pointArray.length < 2){
     return;
   }
+
+  // set color
+  ctx.fillStyle = color;
   
   // stroke the points
   for (var pp = 1; pp < pointArray.length; pp+=1) {
@@ -86,7 +122,7 @@ const send = (stroke) => {
   if(stroke.length < 1) {
     return;
   }
-  socket.send('DRAW', compressStroke('PEN','PINK',stroke))
+  socket.send('DRAW', compressStroke('PEN',stroke[1],stroke[2], stroke[3]))
 }
 
 const replay = (replayStrokes) => {
@@ -114,9 +150,9 @@ const render = () => {
   ctx.clearRect(0, 0, el.width, el.height);
   
   // prev strokes
-  strokes.forEach((stroke) => drawWithPen(ctx, stroke));
+  strokes.forEach((stroke) => drawWithPen(ctx, stroke[2], stroke[1], stroke[3] == null ? brushSizes[0] : stroke[3]));
   // current stroke
-  drawWithPen(ctx, currentStrokePoints);
+  drawWithPen(ctx, currentStrokePoints, colors[currentColor], brushSizes[currentBrushSize]);
 
   window.requestAnimationFrame(render);
 }
@@ -129,8 +165,15 @@ const stopDrawing = function() {
   }
   isDrawing = false;
   // save the stroke and start a new stroke
-  strokes.push(currentStrokePoints);
-  send(currentStrokePoints);
+  // strokes.push(currentStrokePoints);
+  const newStroke = [
+    'PEN',
+    colors[currentColor],
+    currentStrokePoints,
+    brushSizes[currentBrushSize]
+  ]
+  strokes.push(newStroke)
+  send(newStroke);
   currentStrokePoints = [];
 };
 
@@ -143,9 +186,9 @@ const undo = () => {
   strokes.pop();
 }
 
-const compressStroke = (brush,color,points) => {
+const compressStroke = (brush,color,points,size) => {
   const pointsStr = points.map(p => `${p.x},${p.y}`).join(',')
-  return `${brush}:${color}:${pointsStr}`;
+  return `${brush}:${color}:${pointsStr}:${size}`;
 };
 const decompressStroke = (str) => {
   const parts = str.split(':');
@@ -155,7 +198,8 @@ const decompressStroke = (str) => {
     parts[2].match(/[^,]+,[^,]+/g).map(p => {
       const [x,y] = p.split(',')
       return {x: parseFloat(x), y: parseFloat(y)}
-    })
+    }),
+    parts[3]
   ];
 };
 
@@ -171,6 +215,13 @@ document.getElementById('undo').addEventListener('click', undo)
 
 window.addEventListener('scroll', updateOffset);
 window.addEventListener('resize', updateOffset);
+
+colorButtons.forEach(item => {
+  item.addEventListener('click', onColorSelect)
+});
+brushSizeButtons.forEach(item => {
+  item.addEventListener('click', onBrushSizeSelect)
+});
 
 var connect = () => {
   if(socket && socket.conn.readyState === 1){
@@ -191,12 +242,14 @@ var connect = () => {
     el.classList.add('enabled');
   })
   socket.bind('DRAW', (data) => {
-    strokes.push(decompressStroke(data)[2])
+    // strokes.push(decompressStroke(data)[2])
+    strokes.push(decompressStroke(data));
   })
   socket.bind('REMEMBER', (data) => {
     console.log('REMEMBERING');
     // strokes = data.map((s => decompressStroke(s)[2]));
-    replay(data.map((s => decompressStroke(s)[2])));
+    // replay(data.map((s => decompressStroke(s)[2])));
+    replay(data.map((s => decompressStroke(s))));
   })
   socket.bind('close', () => {
     console.log('websocket closed');

@@ -25,7 +25,7 @@ const app = new express();
 
 const port = 8080;
 var inMemoryStrokes = [];
-const maxSavedStrokes = 20;
+const maxSavedStrokes = 200;
 
 // LRANGE STROKES 0 -1
 redisLRange('STROKES', 0, maxSavedStrokes - 1).then(r => {
@@ -51,15 +51,12 @@ wss.on('connection', function connection(ws) {
 
   ws.on('message', function incoming(rawMessage) {
     const message = JSON.parse(rawMessage);
-    // console.log('received: %s', message);
     if(message.event === 'DRAW') {
       inMemoryStrokes.push(message.data);
-      // rClient.lpush('message.data');
-      // rClient.ltrim(0,99)
-      // push and limit to 99
+
+      // push and limit to a max number of strokes
       redisLpush('STROKES', message.data).then(() => redisLTrim('STROKES', 0, maxSavedStrokes - 1));
     
-      // ws.send(message)
       wss.clients.forEach(function each(client) {
         // send to all excluding self
         if (client !== ws && client.readyState === WebSocket.OPEN) {
@@ -69,8 +66,7 @@ wss.on('connection', function connection(ws) {
     }
   });
 
-  ws.send(JSON.stringify({event:'REMEMBER', data:inMemoryStrokes}));
-  // ws.send('something');
+  ws.send(JSON.stringify({event:'REMEMBER', data:inMemoryStrokes.slice(0 - maxSavedStrokes)}));
 });
 
 // todo: ws rate limit?
