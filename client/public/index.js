@@ -11,18 +11,14 @@ function angleBetween(point1, point2) {
 }
 
 var el = document.getElementById('c');
-var canvas2 = document.getElementById('d')
 var ctx = el.getContext('2d');
-var ctx2 = canvas2.getContext('2d');
 ctx.fillStyle = 'red';
-ctx2.fillStyle = 'green';
 
 var isDrawing = false;
 var rect = el.getBoundingClientRect();
 
 var currentStrokePoints = [];
 var strokes = []
-// var otherCanvasStrokes = [];
 
 // TODO: make sure we can't draw before opened, or queue up drawings before opened
 var socket;
@@ -31,6 +27,16 @@ var drawingEnabled = false;
 
 const updateOffset = (e) => {
   rect = el.getBoundingClientRect();
+}
+
+const onMouseDown = function(e) {
+  if(isDrawing) {
+    stopDrawing(e);
+  }
+  startDrawing(e);
+}
+const onMouseUp = function(e) {
+  stopDrawing(e);
 }
 
 
@@ -74,11 +80,33 @@ const onMouseMove = function(e) {
 };
 
 const send = (stroke) => {
-  // otherCanvasStrokes.push(stroke);
   if(!socket){
     throw new Error('Socket not connected')
   }
+  if(stroke.length < 1) {
+    return;
+  }
   socket.send('DRAW', compressStroke('PEN','PINK',stroke))
+}
+
+const replay = (replayStrokes) => {
+  const frameRate = 1000 / 60; // FPS
+  let lastFrameTime = null;
+  doReplay = () => {
+    if(replayStrokes.length < 1) {
+      return;
+    }
+    const now = new Date();
+    if(lastFrameTime != null && now - lastFrameTime < frameRate) {
+      window.requestAnimationFrame(doReplay);
+      return;
+    }
+    lastFrameTime = now;
+
+    strokes.push(replayStrokes.shift());
+    window.requestAnimationFrame(doReplay);
+  }
+  window.requestAnimationFrame(doReplay);
 }
 
 
@@ -89,17 +117,16 @@ const render = () => {
   strokes.forEach((stroke) => drawWithPen(ctx, stroke));
   // current stroke
   drawWithPen(ctx, currentStrokePoints);
-  
-  
-  // other canvas
-  // otherCanvasStrokes.forEach((stroke) => drawWithPen(ctx2, stroke));
-  
+
   window.requestAnimationFrame(render);
 }
 window.requestAnimationFrame(render);
 
 
 const stopDrawing = function() {
+  if(!isDrawing) {
+    return;
+  }
   isDrawing = false;
   // save the stroke and start a new stroke
   strokes.push(currentStrokePoints);
@@ -133,8 +160,8 @@ const decompressStroke = (str) => {
 };
 
 
-el.addEventListener('mousedown', startDrawing);
-el.addEventListener('mouseup', stopDrawing);
+el.addEventListener('mousedown', onMouseDown);
+el.addEventListener('mouseup', onMouseUp);
 el.addEventListener('mousemove', onMouseMove);
 //el.addEventListener('mouseout', stopDrawing);
 
@@ -168,7 +195,8 @@ var connect = () => {
   })
   socket.bind('REMEMBER', (data) => {
     console.log('REMEMBERING');
-    strokes = data.map((s => decompressStroke(s)[2]));
+    // strokes = data.map((s => decompressStroke(s)[2]));
+    replay(data.map((s => decompressStroke(s)[2])));
   })
   socket.bind('close', () => {
     console.log('websocket closed');
