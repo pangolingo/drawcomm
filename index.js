@@ -24,12 +24,13 @@ rClient.on("error", function (err) {
 const app = new express();
 
 const port = 8080;
-var strokes = [];
+var inMemoryStrokes = [];
+const maxSavedStrokes = 20;
 
 // LRANGE STROKES 0 -1
-redisLRange('STROKES', 0, -1).then(r => {
+redisLRange('STROKES', 0, maxSavedStrokes - 1).then(r => {
   console.log(r);
-  strokes = r;
+  inMemoryStrokes = r;
 })
 
 
@@ -52,12 +53,11 @@ wss.on('connection', function connection(ws) {
     const message = JSON.parse(rawMessage);
     // console.log('received: %s', message);
     if(message.event === 'DRAW') {
-      strokes.push(message.data);
+      inMemoryStrokes.push(message.data);
       // rClient.lpush('message.data');
       // rClient.ltrim(0,99)
       // push and limit to 99
-      const limit = 99;
-      redisLpush('STROKES', message.data).then(() => redisLTrim('STROKES', 0,limit));
+      redisLpush('STROKES', message.data).then(() => redisLTrim('STROKES', 0, maxSavedStrokes - 1));
     
       // ws.send(message)
       wss.clients.forEach(function each(client) {
@@ -69,7 +69,7 @@ wss.on('connection', function connection(ws) {
     }
   });
 
-  ws.send(JSON.stringify({event:'REMEMBER', data:strokes}));
+  ws.send(JSON.stringify({event:'REMEMBER', data:inMemoryStrokes}));
   // ws.send('something');
 });
 
