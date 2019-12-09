@@ -1,63 +1,90 @@
+type Point = {
+  x: number,
+  y: number
+}
+
+enum Brush {
+  Pen = "pen"
+};
+enum Color {
+  Red = "red",
+  Blue = "blue",
+  Green = "green",
+  White = "white"
+};
+type BrushSize = number;
+type PointList = Array<Point>;
+type ColorId = number;
+
+type Stroke = [
+  Brush,
+  ColorId,
+  PointList,
+  BrushSize,
+]
+type StrokeList = Array<Stroke>
+
 // http://perfectionkills.com/exploring-canvas-drawing-techniques/
 // const brushSize = 5;
-const brushAngle = 1/2;
+const brushAngle: number = 1/2;
 
-function distanceBetween(point1, point2) {
+function distanceBetween(point1: Point, point2: Point): number {
   //return Math.sqrt(Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2));
   return Math.hypot(point2.x - point1.x, point2.y - point1.y)
 }
-function angleBetween(point1, point2) {
+function angleBetween(point1: Point, point2: Point): number {
   return Math.atan2( point2.x - point1.x, point2.y - point1.y );
 }
 
-const colors = ['red', 'green', 'blue', 'white'];
-const brushSizes = [1, 5, 30];
-let currentColor = 0;
-let currentBrushSize = 1;
+const colors: Array<Color> = [Color.Red, Color.Green, Color.Blue, Color.White];
+const brushSizes: Array<BrushSize> = [2, 5, 30];
+let currentColor: ColorId = 0;
+let currentBrushSize: number = 1;
 
 const colorButtons = document.querySelectorAll('.color-button');
 const brushSizeButtons = document.querySelectorAll('.size-button');
 
-var el = document.getElementById('c');
-var ctx = el.getContext('2d');
-// ctx.fillStyle = colors[currentColor];
+let canvas: HTMLCanvasElement = <HTMLCanvasElement>document.getElementById('c');
+let canvasCtx: CanvasRenderingContext2D = canvas.getContext('2d');
 
-var isDrawing = false;
-var rect = el.getBoundingClientRect();
+let isDrawing: Boolean = false;
+let rect = canvas.getBoundingClientRect();
 
-var currentStrokePoints = [];
-var strokes = []
+let currentStrokePoints: PointList = [];
+let strokes: StrokeList = []
 
 // TODO: make sure we can't draw before opened, or queue up drawings before opened
-var socket;
+let socket: any; // TODO: type
 
-var drawingEnabled = false;
+let drawingEnabled = false;
 
-const updateOffset = (e) => {
-  rect = el.getBoundingClientRect();
+const updateOffset = (e: Event) => {
+  rect = canvas.getBoundingClientRect();
 }
 
-const onColorSelect = (e) => {
-  const colorId = parseInt(e.currentTarget.dataset.color);
+const onColorSelect = (e: Event) => {
+  const target = <HTMLElement>e.currentTarget;
+  const colorId = parseInt(target.dataset.color);
   setColor(colorId);
 }
 
-const onBrushSizeSelect = (e) => {
-  const brushSizeId = parseInt(e.currentTarget.dataset.size);
+const onBrushSizeSelect = (e: Event) => {
+  const target = <HTMLElement>e.currentTarget;
+  const brushSizeId: number = parseInt(target.dataset.size);
   setBrushSize(brushSizeId);
 }
 
-const onMouseDown = function(e) {
+const onMouseDown = function(e: Event) {
   if(isDrawing) {
-    stopDrawing(e);
+    stopDrawing();
   }
-  startDrawing(e);
+  startDrawing();
 }
-const onMouseUp = function(e) {
-  stopDrawing(e);
+const onMouseUp = function(e: MouseEvent) {
+  stopDrawing();
 }
 
-const setColor = (colorId) => {
+const setColor = (colorId: ColorId) => {
   console.log('setting color', colorId, colors[colorId])
   if(colorId < 0 || colorId >= colors.length) {
     throw new Error(`Invalid color id ${colorId}`)
@@ -65,7 +92,7 @@ const setColor = (colorId) => {
   currentColor = colorId;
 }
 
-const setBrushSize = (brushSizeId) => {
+const setBrushSize = (brushSizeId: number) => {
   console.log('setting brush size', brushSizeId, brushSizes[brushSizeId])
   if(brushSizeId < 0 || brushSizeId >= brushSizes.length) {
     throw new Error(`Invalid brush size id ${brushSizeId}`)
@@ -73,7 +100,7 @@ const setBrushSize = (brushSizeId) => {
   currentBrushSize = brushSizeId;
 }
 
-const startDrawing = function(e) {
+const startDrawing = function() {
   if(!drawingEnabled){
     return;
   }
@@ -81,26 +108,26 @@ const startDrawing = function(e) {
   isDrawing = true;
 };
 
-const drawWithPen = (context, pointArray, color, brushSize) => {
+const drawWithPen = (context: CanvasRenderingContext2D, pointArray: PointList, color: Color, brushSize: BrushSize) => {
   if(pointArray.length < 2){
     return;
   }
 
   // set color
-  ctx.fillStyle = color;
+  canvasCtx.fillStyle = color;
   
   // stroke the points
   for (var pp = 1; pp < pointArray.length; pp+=1) {
-    const currentPoint = pointArray[pp];
-    const lastPoint = pointArray[pp-1];
+    const currentPoint: Point = pointArray[pp];
+    const lastPoint: Point = pointArray[pp-1];
     
     var dist = distanceBetween(lastPoint, currentPoint);
     var angle = angleBetween(lastPoint, currentPoint);
     
     // interpolate
     for (var i = 0; i < dist; i+=1) {
-      x = lastPoint.x + (Math.sin(angle) * i);
-      y = lastPoint.y + (Math.cos(angle) * i);
+      var x = lastPoint.x + (Math.sin(angle) * i);
+      var y = lastPoint.y + (Math.cos(angle) * i);
       context.fillRect(x,y,brushSize,brushSize * brushAngle)
     }
   }
@@ -108,31 +135,32 @@ const drawWithPen = (context, pointArray, color, brushSize) => {
 
 // drawWithPen(ctx, [{x:1,y:1},{x:100,y:100},{x:200,y:1}]);
 
-const onMouseMove = function(e) {
+const onMouseMove = function(e: MouseEvent) {
   if (!isDrawing) return;
   
   var currentPoint = { x: Math.round(e.clientX - rect.left), y: Math.round(e.clientY - rect.top) };
   currentStrokePoints.push(currentPoint);
 };
 
-const send = (stroke) => {
+const send = (stroke: Stroke) => {
   if(!socket){
     throw new Error('Socket not connected')
   }
   if(stroke.length < 1) {
     return;
   }
-  socket.send('DRAW', compressStroke('PEN',stroke[1],stroke[2], stroke[3]))
+  const [ brush, color, strokePoints, brushSize ] = stroke;
+  socket.send('DRAW', compressStroke(brush,color,strokePoints, brushSize))
 }
 
-const replay = (replayStrokes) => {
-  const frameRate = 1000 / 60; // FPS
-  let lastFrameTime = null;
-  doReplay = () => {
+const replay = (replayStrokes: StrokeList) => {
+  const frameRate: number = 1000 / 60; // FPS
+  let lastFrameTime: number = null;
+  const doReplay = (): void => {
     if(replayStrokes.length < 1) {
       return;
     }
-    const now = new Date();
+    const now: number = Date.now();
     if(lastFrameTime != null && now - lastFrameTime < frameRate) {
       window.requestAnimationFrame(doReplay);
       return;
@@ -146,13 +174,13 @@ const replay = (replayStrokes) => {
 }
 
 
-const render = () => {
-  ctx.clearRect(0, 0, el.width, el.height);
+const render = (): void => {
+  canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
   
   // prev strokes
-  strokes.forEach((stroke) => drawWithPen(ctx, stroke[2], stroke[1], stroke[3] == null ? brushSizes[0] : stroke[3]));
+  strokes.forEach((stroke) => drawWithPen(canvasCtx, stroke[2], colors[stroke[1]], stroke[3] == null ? brushSizes[0] : stroke[3]));
   // current stroke
-  drawWithPen(ctx, currentStrokePoints, colors[currentColor], brushSizes[currentBrushSize]);
+  drawWithPen(canvasCtx, currentStrokePoints, colors[currentColor], brushSizes[currentBrushSize]);
 
   window.requestAnimationFrame(render);
 }
@@ -166,9 +194,9 @@ const stopDrawing = function() {
   isDrawing = false;
   // save the stroke and start a new stroke
   // strokes.push(currentStrokePoints);
-  const newStroke = [
-    'PEN',
-    colors[currentColor],
+  const newStroke: Stroke = [
+    Brush.Pen,
+    currentColor,
     currentStrokePoints,
     brushSizes[currentBrushSize]
   ]
@@ -186,27 +214,28 @@ const undo = () => {
   strokes.pop();
 }
 
-const compressStroke = (brush,color,points,size) => {
+const compressStroke = (brush: Brush,color: ColorId,points: PointList,size: BrushSize): string => {
   const pointsStr = points.map(p => `${p.x},${p.y}`).join(',')
   return `${brush}:${color}:${pointsStr}:${size}`;
 };
-const decompressStroke = (str) => {
+const decompressStroke = (str: string): Stroke => {
   const parts = str.split(':');
+  const [ brush, color, pointlist, brushSize ] = parts;
   return [
-    parts[0],
-    parts[1],
-    parts[2].match(/[^,]+,[^,]+/g).map(p => {
+    <Brush>brush,
+    parseInt(color),
+    pointlist.match(/[^,]+,[^,]+/g).map(p => {
       const [x,y] = p.split(',')
       return {x: parseFloat(x), y: parseFloat(y)}
     }),
-    parts[3]
+    parseFloat(brushSize)
   ];
 };
 
 
-el.addEventListener('mousedown', onMouseDown);
-el.addEventListener('mouseup', onMouseUp);
-el.addEventListener('mousemove', onMouseMove);
+canvas.addEventListener('mousedown', onMouseDown);
+canvas.addEventListener('mouseup', onMouseUp);
+canvas.addEventListener('mousemove', onMouseMove);
 //el.addEventListener('mouseout', stopDrawing);
 
 document.getElementById('clear').addEventListener('click', clear)
@@ -239,13 +268,13 @@ var connect = () => {
   socket.bind('open', () => {
     console.log('websocket opened');
     drawingEnabled = true;
-    el.classList.add('enabled');
+    canvas.classList.add('enabled');
   })
-  socket.bind('DRAW', (data) => {
+  socket.bind('DRAW', (data: string) => {
     // strokes.push(decompressStroke(data)[2])
     strokes.push(decompressStroke(data));
   })
-  socket.bind('REMEMBER', (data) => {
+  socket.bind('REMEMBER', (data: Array<string>) => {
     console.log('REMEMBERING');
     // strokes = data.map((s => decompressStroke(s)[2]));
     // replay(data.map((s => decompressStroke(s)[2])));
@@ -254,7 +283,7 @@ var connect = () => {
   socket.bind('close', () => {
     console.log('websocket closed');
     drawingEnabled = false;
-    el.classList.remove('enabled');
+    canvas.classList.remove('enabled');
     // alert('websocket closed');
   })
 

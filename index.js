@@ -39,6 +39,7 @@ app.get('/', function(req, res){
     res.sendFile('/index.html', {root: 'client'});
 });
 app.use(express.static('client/public'))
+app.use(express.static('client/dist'))
 
 app.listen(port, () => console.log(`Listening on port ${port}!`))
 
