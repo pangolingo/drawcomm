@@ -12,9 +12,12 @@ export default class Palette {
   private colorButtons: NodeListOf<HTMLElement>;
   private brushSizeButtons: NodeListOf<HTMLElement>;
 
-  constructor() {
-    this.colorButtons = document.querySelectorAll('.color-button');
-    this.brushSizeButtons = document.querySelectorAll('.size-button');
+  private el: HTMLElement;
+
+  constructor(paletteEl: HTMLElement) {
+    this.el = paletteEl;
+    this.colorButtons = this.el.querySelectorAll('.color-button');
+    this.brushSizeButtons = this.el.querySelectorAll('.size-button');
 
     this.colorButtons.forEach((item: HTMLElement) => {
       item.addEventListener('click', this.onColorSelect.bind(this))
@@ -24,7 +27,7 @@ export default class Palette {
     });
   }
 
-  setColor(colorId: ColorId) {
+  public setColor(colorId: ColorId) {
     console.log('setting color', colorId, this.colors[colorId])
     if(colorId < 0 || colorId >= this.colors.length) {
       throw new Error(`Invalid color id ${colorId}`)
@@ -32,7 +35,7 @@ export default class Palette {
     this.currentColor = colorId;
   }
   
-  setBrushSize(brushSizeId: number) {
+  public setBrushSize(brushSizeId: number) {
     // console.log('setting brush size', brushSizeId, this.brushSizes[brushSizeId])
     // if(brushSizeId < 0 || brushSizeId >= this.brushSizes.length) {
     //   throw new Error(`Invalid brush size id ${brushSizeId}`)
@@ -40,31 +43,31 @@ export default class Palette {
     this.currentBrushSize = brushSizeId;
   }
 
-  onColorSelect (e: Event) {
+  private onColorSelect (e: Event) {
     const target = <HTMLElement>e.currentTarget;
     const colorId = parseInt(target.dataset.color);
     this.setColor(colorId);
   }
   
-  onBrushSizeSelect (e: Event) {
+  private onBrushSizeSelect (e: Event) {
     const target = <HTMLElement>e.currentTarget;
     const brushSize: number = parseInt(target.dataset.size);
     this.setBrushSize(brushSize);
   }
 
-  getColor(colorId: ColorId): Color {
+  public getColor(colorId: ColorId): Color {
     return this.colors[colorId];
   }
 
-  getCurrentColor(): Color {
+  public getCurrentColor(): Color {
     return this.colors[this.currentColor];
   }
 
-  getCurrentColorId(): ColorId {
+  public getCurrentColorId(): ColorId {
     return this.currentColor;
   }
 
-  getCurrentBrushSize(): BrushSize {
+  public getCurrentBrushSize(): BrushSize {
     return this.currentBrushSize;
   }
 }

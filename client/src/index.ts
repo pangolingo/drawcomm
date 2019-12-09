@@ -1,12 +1,11 @@
 import SocketCommunicator from './SocketCommunicator';
-
 import Palette from './Palette';
 import BrushLayer from './BrushLayer';
 import Canvas from './Canvas';
 
-import { Point, Brush, Color, BrushSize, PointList, StrokeList, Stroke } from './types';
+import { Stroke } from './types';
 
-const palette = new Palette();
+const palette = new Palette(document.getElementById('palette'));
 const brushLayer = new BrushLayer();
 
 let socket: SocketCommunicator = new SocketCommunicator({
@@ -27,10 +26,7 @@ let socket: SocketCommunicator = new SocketCommunicator({
   },
 });
 
-window.addEventListener('focus', socket.connect);;
-
-document.getElementById('clear').addEventListener('click', brushLayer.clear)
-document.getElementById('undo').addEventListener('click', brushLayer.undo)
+window.addEventListener('focus', socket.connect);
 
 const canvas: Canvas = new Canvas(<HTMLCanvasElement>document.getElementById('c'), palette, brushLayer, socket);
 

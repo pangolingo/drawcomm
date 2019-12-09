@@ -15,12 +15,12 @@ export default class Canvas {
   private brushLayer: BrushLayer
   private socket: SocketCommunicator
 
-  constructor(canvas: HTMLCanvasElement, palette: Palette, brushLayer: BrushLayer, socket: SocketCommunicator) {
-    this.canvas = <HTMLCanvasElement>document.getElementById('c');
+  constructor(canvasEl: HTMLCanvasElement, palette: Palette, brushLayer: BrushLayer, socket: SocketCommunicator) {
+    this.canvas = canvasEl;
     this.canvasCtx = this.canvas.getContext('2d');
     this.rect = this.canvas.getBoundingClientRect();
+    this.palette =  palette;
 
-    this.palette = palette;
     this.brushLayer = brushLayer;
     this.socket = socket;
 

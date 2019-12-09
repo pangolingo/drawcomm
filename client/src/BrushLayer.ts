@@ -18,7 +18,7 @@ export default class BrushLayer {
     this.addCurrentStrokePoint = this.addCurrentStrokePoint.bind(this);
   }
 
-  drawWithPen (context: CanvasRenderingContext2D, palette: Palette, pointArray: PointList, colorId: ColorId = null, _brushSize: number = null){
+  public drawWithPen (context: CanvasRenderingContext2D, palette: Palette, pointArray: PointList, colorId: ColorId = null, _brushSize: number = null){
     const color: Color = colorId != null ? palette.getColor(colorId) : palette.getCurrentColor();
     const brushSize: number = _brushSize != null ? _brushSize : palette.getCurrentBrushSize();
     const brushAngle: number = palette.brushAngle;
@@ -47,7 +47,7 @@ export default class BrushLayer {
     }
   }
 
-  replay (replayStrokes: StrokeList){
+  public replay (replayStrokes: StrokeList){
     const frameRate: number = 1000 / 60; // FPS
     let lastFrameTime: number = null;
     const doReplay = (): void => {
@@ -67,33 +67,32 @@ export default class BrushLayer {
     window.requestAnimationFrame(doReplay);
   }
   
-  clear (){
-    // this.currentStrokePoints = [];
+  public clear (){
     this.resetCurrentStroke();
     this.strokes = []
   }
   
-  undo (){
+  public undo (){
     this.strokes.pop();
   }
 
-  addStroke(stroke: Stroke) {
+  public addStroke(stroke: Stroke) {
     this.strokes.push(stroke);
   }
 
-  addCurrentStrokePoint(point: Point) {
+  public addCurrentStrokePoint(point: Point) {
     this.currentStrokePoints.push(point);
   }
 
-  resetCurrentStroke() {
+  public resetCurrentStroke() {
     this.currentStrokePoints = [];
   }
 
-  startDrawing () {
+  public startDrawing () {
     this.resetCurrentStroke();
   };
 
-  endDrawing(palette: Palette): Stroke {
+  public endDrawing(palette: Palette): Stroke {
     // save the stroke and start a new stroke
     // strokes.push(currentStrokePoints);
     const newStroke: Stroke = [
