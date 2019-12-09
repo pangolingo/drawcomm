@@ -8,7 +8,8 @@ import { Stroke } from './types';
 const palette = new Palette(document.getElementById('palette'));
 const brushLayer = new BrushLayer();
 
-let socket: SocketCommunicator = new SocketCommunicator({
+// TODO: fix scoping problems in this config
+const socket: SocketCommunicator = new SocketCommunicator({
   socketOnOpen: () => {
     console.log('websocket opened');
     canvas.enable();
@@ -18,19 +19,16 @@ let socket: SocketCommunicator = new SocketCommunicator({
   },
   socketOnReceiveRemember: (strokes: Array<Stroke>) => {
     console.log('REMEMBERING');
-    brushLayer.replay(strokes)
+    brushLayer.replay(strokes);
   },
   socketOnClose: () => {
     console.log('websocket closed');
     canvas.disable();
   },
 });
-
-window.addEventListener('focus', socket.connect);
-
 const canvas: Canvas = new Canvas(<HTMLCanvasElement>document.getElementById('c'), palette, brushLayer, socket);
 
-
+window.addEventListener('focus', socket.connect);
 
 
 // todo: zip the message with http://pieroxy.net/blog/pages/lz-string/index.html

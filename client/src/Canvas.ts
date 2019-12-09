@@ -1,25 +1,37 @@
-import { Point, Brush, Color, BrushSize, PointList, StrokeList, Stroke, ColorId } from './types';
+import {
+  Brush, BrushSize, PointList, Stroke, ColorId,
+} from './types';
 import Palette from './Palette';
 import BrushLayer from './BrushLayer';
 import SocketCommunicator from './SocketCommunicator';
 
 export default class Canvas {
   private canvas: HTMLCanvasElement;
+
   private canvasCtx: CanvasRenderingContext2D;
 
   public isDrawing: Boolean = false;
+
   private drawingEnabled: Boolean = false;
+
   rect: ClientRect | DOMRect;
 
   private palette: Palette;
+
   private brushLayer: BrushLayer
+
   private socket: SocketCommunicator
 
-  constructor(canvasEl: HTMLCanvasElement, palette: Palette, brushLayer: BrushLayer, socket: SocketCommunicator) {
+  constructor(
+    canvasEl: HTMLCanvasElement,
+    palette: Palette,
+    brushLayer: BrushLayer,
+    socket: SocketCommunicator,
+  ) {
     this.canvas = canvasEl;
     this.canvasCtx = this.canvas.getContext('2d');
     this.rect = this.canvas.getBoundingClientRect();
-    this.palette =  palette;
+    this.palette = palette;
 
     this.brushLayer = brushLayer;
     this.socket = socket;
@@ -43,34 +55,39 @@ export default class Canvas {
   getCanvas(): HTMLCanvasElement {
     return this.canvas;
   }
+
   getCanvasCtx(): CanvasRenderingContext2D {
     return this.canvasCtx;
   }
 
-  updateOffset (e: Event){
+  updateOffset() {
     this.rect = this.canvas.getBoundingClientRect();
   }
 
-  onMouseDown(e: Event) {
-    if(this.isDrawing) {
+  onMouseDown() {
+    if (this.isDrawing) {
       this.stopDrawing();
     }
     this.startDrawing();
   }
-  onMouseUp(e: MouseEvent) {
+
+  onMouseUp() {
     this.stopDrawing();
   }
 
   onMouseMove(e: MouseEvent) {
     if (!this.isDrawing) return;
-    
-    var currentPoint = { x: Math.round(e.clientX - this.rect.left), y: Math.round(e.clientY - this.rect.top) };
-    this.brushLayer.addCurrentStrokePoint(currentPoint);
-  };
 
-  render (): void {
+    const currentPoint = {
+      x: Math.round(e.clientX - this.rect.left),
+      y: Math.round(e.clientY - this.rect.top),
+    };
+    this.brushLayer.addCurrentStrokePoint(currentPoint);
+  }
+
+  render(): void {
     this.canvasCtx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    
+
     // prev strokes
     this.brushLayer.strokes.forEach((stroke) => {
       const [, colorId, pointList, brushSize]: [ Brush, ColorId, PointList, BrushSize ] = stroke;
@@ -78,7 +95,7 @@ export default class Canvas {
     });
     // current stroke
     this.brushLayer.drawWithPen(this.canvasCtx, this.palette, this.brushLayer.currentStrokePoints);
-  
+
     window.requestAnimationFrame(this.render.bind(this));
   }
 
@@ -93,26 +110,25 @@ export default class Canvas {
   }
 
   stopDrawing() {
-    if(!this.isDrawing) {
+    if (!this.isDrawing) {
       return;
     }
     this.isDrawing = false;
 
     const newStroke: Stroke = this.brushLayer.endDrawing(this.palette);
 
-    if(this.socket){
+    if (this.socket) {
       this.socket.send(newStroke);
     } else {
       throw new Error('Socket connection not initialized');
     }
-  };
+  }
 
   startDrawing() {
-    if(!this.drawingEnabled){
+    if (!this.drawingEnabled) {
       return;
     }
     this.isDrawing = true;
     this.brushLayer.startDrawing();
   }
-  
 }

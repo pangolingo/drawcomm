@@ -4,14 +4,14 @@ export type Point = {
 }
 
 export enum Brush {
-  Pen = "pen"
-};
+  Pen = 'pen'
+}
 export enum Color {
-  Red = "red",
-  Blue = "blue",
-  Green = "green",
-  White = "white"
-};
+  Red = 'red',
+  Blue = 'blue',
+  Green = 'green',
+  White = 'white'
+}
 export type BrushSize = number;
 export type PointList = Array<Point>;
 export type ColorId = number;
