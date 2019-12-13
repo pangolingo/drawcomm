@@ -5,3 +5,64 @@ canvas {
 canvas.enabled {
   background-color: white;
 }
+
+.color-palette,
+.brush-size-palette {
+  display: flex;
+  flex-direction: row;
+}
+.color-palette__swatch,
+.brush-size-palette__swatch {
+  /* button reset */
+  padding: 0;
+  border: none;
+  font: inherit;
+  color: inherit;
+  background-color: transparent;
+  cursor: pointer;
+
+  width: 40px;
+  height: 40px;
+  background-color: gray;
+  outline-offset: -2.5px;
+  outline-width: 5px;
+}
+.color-palette__swatch__label,
+.brush-size-palette__swatch__label {
+  /* sr-only */
+  border: 0 !important;
+	clip: rect(1px, 1px, 1px, 1px) !important; /* 1 */
+	-webkit-clip-path: inset(50%) !important;
+		clip-path: inset(50%) !important;  /* 2 */
+	height: 1px !important;
+	margin: -1px !important;
+	overflow: hidden !important;
+	padding: 0 !important;
+	position: absolute !important;
+	width: 1px !important;
+	white-space: nowrap !important;
+}
+.color-palette__swatch:focus,
+.color-palette__swatch:hover,
+.brush-size-palette__swatch:focus,
+.brush-size-palette__swatch:hover {
+  outline: solid rgba(0,0,0,0.5);
+}
+.color-palette__swatch--selected,
+.color-palette__swatch:active,
+.brush-size-palette__swatch--selected,
+.brush-size-palette__swatch:active {
+  outline: 2px solid black;
+}
+
+.brush-size-palette__swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.brush-size-palette__swatch__demo {
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  background-color: black;
+}

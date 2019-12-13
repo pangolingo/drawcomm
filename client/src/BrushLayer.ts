@@ -1,7 +1,7 @@
 import { distanceBetween, angleBetween } from './utilities';
 
 import {
-  Point, Brush, Color, PointList, StrokeList, Stroke, ColorId,
+  Point, Brush, PointList, StrokeList, Stroke, ColorId,
 } from './types';
 
 import Palette from './Palette';
@@ -28,7 +28,7 @@ export default class BrushLayer {
     colorId: ColorId = null,
     _brushSize: number = null,
   ) {
-    const color: Color = colorId != null ? palette.getColor(colorId) : palette.getCurrentColor();
+    const color: string = colorId != null ? palette.getColorValue(colorId) : palette.getCurrentColorValue();
     const brushSize: number = _brushSize != null ? _brushSize : palette.getCurrentBrushSize();
     const { brushAngle } = palette;
 
